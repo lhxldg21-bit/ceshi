@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻译器 API 测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1DA1F2; }
+        .test-item {
+            margin: 16px 0;
+            padding: 16px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #1DA1F2;
+        }
+        .test-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 14px;
+        }
+        .test-result {
+            font-size: 18px;
+            margin-top: 8px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .loading { color: #ffc107; }
+        button {
+            background: #1DA1F2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover { background: #1a91da; }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok { background: #28a745; color: white; }
+        .status.fail { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🌐 翻译器 API 测试</h1>
+        <p>测试 MyMemory 翻译 API 是否可用</p>
+        <button onclick="runTests()">🔄 运行测试</button>
+        <div id="results"></div>
+    </div>
+
+    <div class="card">
+        <h2>📝 手动翻译测试</h2>
+        <input type="text" id="inputText" placeholder="输入英文..." style="width: 100%; padding: 12px; font-size: 16px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 6px;">
+        <button onclick="translateManual()">翻译</button>
+        <div id="manualResult" class="test-result" style="margin-top: 16px; display: none;"></div>
+    </div>
+
+    <script>
+        async function testAPI(text) {
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-CN`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
+        }
+
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="loading">⏳ 正在测试...</p>';
+
+            const tests = [
+                { input: 'Hello World', expected: '你好' },
+                { input: 'Twitter is a social media platform', expected: 'Twitter' },
+                { input: 'YouTube video', expected: '视频' },
+                { input: 'Good morning', expected: '早安' }
+            ];
+
+            let html = '';
+            for (const test of tests) {
+                try {
+                    const data = await testAPI(test.input);
+                    const translated = data.responseData?.translatedText || 'N/A';
+                    const status = data.responseStatus === 200 ? 'ok' : 'fail';
+                    const statusText = status === 'ok' ? '✅ 成功' : '❌ 失败';
+                    
+                    html += `
+                        <div class="test-item">
+                            <div class="test-label">原文：${test.input} <span class="status ${status}">${statusText}</span></div>
+                            <div class="test-result">${translated}</div>
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `
+                        <div class="test-item">
+                            <div class="test-label">${test.input} <span class="status fail">❌ 错误</span></div>
+                            <div class="test-result error">${error.message}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        async function translateManual() {
+            const input = document.getElementById('inputText').value.trim();
+            const resultDiv = document.getElementById('manualResult');
+            
+            if (!input) {
+                alert('请输入要翻译的内容');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">⏳ 翻译中...</span>';
+
+            try {
+                const data = await testAPI(input);
+                const translated = data.responseData?.translatedText || '翻译失败';
+                resultDiv.innerHTML = `<strong>翻译结果：</strong>${translated}`;
+                resultDiv.className = 'test-result success';
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>错误：</strong>${error.message}`;
+                resultDiv.className = 'test-result error';
+            }
+        }
+
+        // Auto-run on load
+        window.onload = runTests;
+    </script>
+</body>
+</html>
