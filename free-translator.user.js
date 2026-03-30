@@ -34,13 +34,36 @@
         detectThreshold: 0.7,
         
         // 翻译 API 列表（按优先级排序，全部免费）
+        // 注意：MyMemory 放第一位，因为 Google API 在中国大陆可能被墙
         apis: [
             {
-                name: 'Google Translate (免费)',
-                url: 'https://translate.googleapis.com/translate_a/t',
+                name: 'MyMemory (免费，推荐)',
+                url: 'https://api.mymemory.translated.net/get',
                 method: 'GET',
                 enabled: true,
                 weight: 100,
+                request: (text, target) => ({
+                    url: `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${target}`,
+                    method: 'GET'
+                }),
+                parse: (response) => {
+                    try {
+                        const data = JSON.parse(response);
+                        if (data.responseStatus === 200 && data.responseData) {
+                            return data.responseData.translatedText;
+                        }
+                        return null;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+            },
+            {
+                name: 'Google Translate (免费，备用)',
+                url: 'https://translate.googleapis.com/translate_a/t',
+                method: 'GET',
+                enabled: true,
+                weight: 50,
                 request: (text, target) => ({
                     url: `https://translate.googleapis.com/translate_a/t?client=gtx&sl=auto&tl=${target}&dt=t&q=${encodeURIComponent(text)}`,
                     method: 'GET'
@@ -49,25 +72,6 @@
                     try {
                         const data = JSON.parse(response);
                         return data[0].map(item => item[0]).join('');
-                    } catch (e) {
-                        return null;
-                    }
-                }
-            },
-            {
-                name: 'MyMemory (免费，每日限制)',
-                url: 'https://api.mymemory.translated.net/get',
-                method: 'GET',
-                enabled: true,
-                weight: 80,
-                request: (text, target) => ({
-                    url: `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${target}`,
-                    method: 'GET'
-                }),
-                parse: (response) => {
-                    try {
-                        const data = JSON.parse(response);
-                        return data.responseData.translatedText;
                     } catch (e) {
                         return null;
                     }
